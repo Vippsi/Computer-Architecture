@@ -60,8 +60,15 @@ but you'll have to implement those three above instructions first!
 ## Step 0: IMPORTANT: inventory what is here!
 
 * Make a list of files here.
+  * asm/: Can deal with later
+  * ls8/: all of the starter code
+  * cpu/: Has a CPU class, already has some functions for ALU/Trace/Load, need to write the run code as well as functions for handling memory
+
 * Write a short 3-10-word description of what each file does.
+  * CPU: This file is the CPU itself, it initializes the CPU class as well as the memory and registers
+  * ls8: This initializes the CPU and calls the load and run functions 
 * Note what has been implemented, and what hasn't.
+  * the load function has been implemented, the ALU and run functions needs to be writeen 
 * Read this whole file.
 * Skim the spec.
 
