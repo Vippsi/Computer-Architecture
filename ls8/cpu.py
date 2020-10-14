@@ -11,6 +11,7 @@ class CPU:
         self.pc = 0
         self.ram = [0] * 256
         self.processing = False
+        
 
         
 
@@ -106,6 +107,9 @@ class CPU:
         LDI = 0b10000010
         PRN = 0b01000111
         ALU = 0b10100010
+        PUSH = 0b01000101
+        POP = 0b01000110
+        self.reg[7] = 0xf4
         # self.trace()
         while self.processing:
             instruction = self.ram[self.pc] 
@@ -124,6 +128,12 @@ class CPU:
             
             elif instruction == ALU:  # MUL
                 self.alu("MULT", operand_a, operand_b)
+            
+            elif instruction == PUSH:
+                self.PUSH()
+
+            elif instruction == POP:
+                self.POP()
             
             else:
                 print(f"Unknown instruction {instruction} at at {self.pc}")
@@ -146,6 +156,26 @@ class CPU:
         reg_num = self.ram[self.pc + 1]
         print(self.reg[reg_num])
         # self.pc += 2
+
+    def PUSH(self):
+        self.reg[7] -= 1
+
+        reg_num = self.ram[self.pc + 1]
+        value = self.reg[reg_num]
+
+
+        top_of_stack_addr = self.reg[7]
+        self.ram[top_of_stack_addr] = value
+
+    def POP(self):
+        top_of_stack_addr = self.reg[7]
+
+        value = self.ram[top_of_stack_addr]
+
+        reg_num = self.ram[self.pc + 1]
+        self.reg[reg_num] = value
+
+        self.reg[7] += 1
     
     
         
