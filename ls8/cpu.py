@@ -12,6 +12,8 @@ class CPU:
         self.ram = [0] * 256
         self.processing = False
 
+        
+
     def load(self):
         """Load a program into memory."""
 
@@ -99,6 +101,11 @@ class CPU:
     def run(self):
         """Run the CPU."""
         self.processing = True
+
+        HLT = 0b00000001
+        LDI = 0b10000010
+        PRN = 0b01000111
+        ALU = 0b10100010
         # self.trace()
         while self.processing:
             instruction = self.ram[self.pc] 
@@ -106,16 +113,16 @@ class CPU:
             operand_b = self.ram[self.pc + 2]
 
 
-            if instruction ==   0b00000001:
+            if instruction ==   HLT:
                 self.HLT()
 
-            elif instruction == 0b10000010:
+            elif instruction == LDI:
                 self.LDI()
             
-            elif instruction == 0b01000111:
+            elif instruction == PRN:
                 self.PRN()
             
-            elif instruction == 0b10100010:  # MUL
+            elif instruction == ALU:  # MUL
                 self.alu("MULT", operand_a, operand_b)
             
             else:
