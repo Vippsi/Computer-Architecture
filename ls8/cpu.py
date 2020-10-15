@@ -11,6 +11,7 @@ class CPU:
         self.pc = 0
         self.ram = [0] * 256
         self.processing = False
+        self.SP = 7
         
 
         
@@ -109,12 +110,37 @@ class CPU:
         ALU = 0b10100010
         PUSH = 0b01000101
         POP = 0b01000110
-        self.reg[7] = 0xf4
+        CALL = 0b01010000
+        RET = 0b00010001
+        MUL = 0b10100010
+        ADD = 0b10100000
+        NOP = 0b00000000
+        
+        self.reg[self.SP] = 0xf4
+
+
+
+        def push_val(value):
+            self.reg[self.SP] -= 1
+        
+            top_of_stack_addr = self.reg[self.SP]
+            self.ram[top_of_stack_addr] = value
+
+        def pop_Val():
+            top_of_stack_addr = self.reg[self.SP]
+            value = self.ram[top_of_stack_addr]
+
+            self.reg[self.SP] += 1
+
+            return value
         # self.trace()
         while self.processing:
             instruction = self.ram[self.pc] 
             operand_a = self.ram[self.pc + 1]
+            # print("OP A",operand_a)
+
             operand_b = self.ram[self.pc + 2]
+            # print("OP B",operand_b)
 
 
             if instruction ==   HLT:
@@ -126,8 +152,11 @@ class CPU:
             elif instruction == PRN:
                 self.PRN()
             
-            elif instruction == ALU:  # MUL
+            elif instruction == MUL:  # MUL
                 self.alu("MULT", operand_a, operand_b)
+            
+            elif instruction == ADD:
+                self.alu("ADD", operand_a, operand_b)
             
             elif instruction == PUSH:
                 self.PUSH()
@@ -135,13 +164,40 @@ class CPU:
             elif instruction == POP:
                 self.POP()
             
+            elif instruction == CALL:
+                return_addr = self.pc + 2
+
+                push_val(return_addr)
+
+                reg_num = self.ram[self.pc + 1]
+                subroutine_addr = self.reg[reg_num]
+
+
+                self.pc = subroutine_addr
+            
+            elif instruction == RET:
+                return_addr = pop_Val()
+
+                self.pc = return_addr
+            
+            elif instruction == NOP:
+                pass
+            
             else:
                 print(f"Unknown instruction {instruction} at at {self.pc}")
                 sys.exit(1)
 
-            inst_len = (instruction >> 6) + 1
-            self.pc += inst_len
 
+            if instruction == CALL or instruction == RET:
+                # print(instruction >> 4)
+                pass
+                
+            else:
+                inst_len = (instruction >> 6) + 1
+                self.pc += inst_len
+
+    
+    
     def HLT(self):
         self.processing = False
 
@@ -176,6 +232,7 @@ class CPU:
         self.reg[reg_num] = value
 
         self.reg[7] += 1
+    
     
     
         
