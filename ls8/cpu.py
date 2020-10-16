@@ -7,7 +7,15 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.reg = [0] * 8
+        self.pc = 0
+        self.ram = [0] * 256
+        self.processing = False
+        self.SP = 7
+        self.flag = 0
+        
+
+        
 
     def load(self):
         """Load a program into memory."""
@@ -16,19 +24,50 @@ class CPU:
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
+
+        if len(sys.argv) != 2:
+            print("usage: cpu.py programname")
+            sys.exit(1)
+
+        try:
+            with open(sys.argv[1]) as f:
+                for line in f:
+                    line = line.strip()
+                    if line == '' or line[0] == "#":
+                        continue
+                    
+                    try:
+                        str_value = line.split("#")[0]
+                        value = int(str_value, base=2) #Need to specify the base for binary in this line int(value, base = 2)
+                    except ValueError:
+                        print(f"Invalid number: {str_value}")
+                        sys.exit(1)
+
+                    self.ram[address] = value
+                    address += 1
+        except FileNotFoundError:
+            print(f"File not found: {sys.argv[1]}")
+            sys.exit(2)
+
+
+    def ram_read(self, address):
+        return self.ram[address]
+
+    def ram_write(self, value, address):
+        self.ram[address] = value
 
 
     def alu(self, op, reg_a, reg_b):
@@ -37,6 +76,41 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == "MULT":
+            self.reg[reg_a] *= self.reg[reg_b]
+        
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+            
+        elif op == "AND":
+            self.reg[reg_a] &= self.reg[reg_b]
+
+        elif op == "OR":
+            self.reg[reg_a] |= self.reg[reg_b]
+            
+        elif op == "XOR":
+            self.reg[reg_a] ^= self.reg[reg_b]
+        
+        elif op == "NOT":
+            self.reg[reg_a] =  ~self.reg[reg_b]
+        
+        elif op == "SHL":
+            self.reg[reg_a] <<= self.reg[reg_b]
+        
+        elif op == "SHR":
+            self.reg[reg_a] >>= self.reg[reg_b]
+            
+        elif op == "MOD":
+            self.reg[reg_a] %= self.reg[reg_b]
+
+
+
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -62,4 +136,204 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        self.processing = True
+
+        HLT = 0b00000001
+        LDI = 0b10000010
+        PRN = 0b01000111
+        ALU = 0b10100010
+        PUSH = 0b01000101
+        POP = 0b01000110
+        CALL = 0b01010000
+        RET = 0b00010001
+        MUL = 0b10100010
+        ADD = 0b10100000
+        NOP = 0b00000000
+        CMP = 0b10100111
+        JMP = 0b01010100
+        JEQ = 0b01010101
+        JNE = 0b01010110
+        #Stretch 
+
+        AND = 0b10101000
+        OR = 0b10101010
+        XOR = 0b10101011
+        NOT = 0b01101001
+        SHL = 0b10101100
+        SHR = 0b10101101
+        MOD = 0b10100100
+        
+        self.reg[self.SP] = 0xf4
+
+
+
+        def push_val(value):
+            self.reg[self.SP] -= 1
+        
+            top_of_stack_addr = self.reg[self.SP]
+            self.ram[top_of_stack_addr] = value
+
+        def pop_Val():
+            top_of_stack_addr = self.reg[self.SP]
+            value = self.ram[top_of_stack_addr]
+
+            self.reg[self.SP] += 1
+
+            return value
+        # self.trace()
+        while self.processing:
+            instruction = self.ram[self.pc] 
+            operand_a = self.ram[self.pc + 1]
+            # print("OP A",operand_a)
+
+            operand_b = self.ram[self.pc + 2]
+            # print("OP B",operand_b)
+
+
+            if instruction ==   HLT:
+                self.HLT()
+
+            elif instruction == LDI:
+                self.LDI()
+            
+            elif instruction == PRN:
+                self.PRN()
+            
+            elif instruction == MUL:  # MUL
+                self.alu("MULT", operand_a, operand_b)
+            
+            elif instruction == ADD:
+                self.alu("ADD", operand_a, operand_b)
+            
+            elif instruction == PUSH:
+                self.PUSH()
+
+            elif instruction == POP:
+                self.POP()
+            
+            elif instruction == CALL:
+                return_addr = self.pc + 2
+
+                push_val(return_addr)
+
+                reg_num = self.ram[self.pc + 1]
+                subroutine_addr = self.reg[reg_num]
+
+
+                self.pc = subroutine_addr
+            
+            elif instruction == RET:
+                return_addr = pop_Val()
+
+                self.pc = return_addr
+            
+            elif instruction == NOP:
+                pass
+
+            elif instruction == CMP:
+                self.alu("CMP", operand_a, operand_b)
+            
+            elif instruction == JMP:
+                self.JMP()
+            
+            elif instruction == JEQ:
+                self.JEQ()
+            
+            elif instruction == JNE:
+                self.JNE()
+            
+            # Stretch
+
+            elif instruction == AND:
+                self.alu("AND", operand_a, operand_b)
+            
+            elif instruction == OR:
+                self.alu("OR", operand_a, operand_b)
+
+            elif instruction == XOR:
+                self.alu("XOR", operand_a, operand_b)
+            
+            elif instruction == NOT:
+                self.alu("NOT", operand_a, operand_b)
+            
+            elif instruction == SHL:
+                self.alu("SHL", operand_a, operand_b)
+            
+            elif instruction == SHR:
+                self.alu("SHR", operand_a, operand_b)
+
+            elif instruction == MOD:
+                self.alu("MOD", operand_a, operand_b)
+            
+            else:
+                print(f"Unknown instruction {instruction} at at {self.pc}")
+                sys.exit(1)
+
+
+            if instruction & 0b00010000 != 0:
+                # print(instruction >> 4)
+                pass
+                
+            else:
+                inst_len = (instruction >> 6) + 1
+                self.pc += inst_len
+
+    
+    
+    def HLT(self):
+        self.processing = False
+
+    def LDI(self):
+        reg_num = self.ram[self.pc + 1]
+        value = self.ram[self.pc + 2]
+
+        self.reg[reg_num] = value
+        # self.pc += 3
+
+    def PRN(self):
+        reg_num = self.ram[self.pc + 1]
+        print(self.reg[reg_num])
+        # self.pc += 2
+
+    def PUSH(self):
+        self.reg[7] -= 1
+
+        reg_num = self.ram[self.pc + 1]
+        value = self.reg[reg_num]
+
+
+        top_of_stack_addr = self.reg[7]
+        self.ram[top_of_stack_addr] = value
+
+    def POP(self):
+        top_of_stack_addr = self.reg[7]
+
+        value = self.ram[top_of_stack_addr]
+
+        reg_num = self.ram[self.pc + 1]
+        self.reg[reg_num] = value
+
+        self.reg[7] += 1
+    
+    def JMP(self):
+        self.pc = self.reg[self.ram_read(self.pc + 1)]
+    
+    def JEQ(self):
+        if self.flag == 0b00000001:
+            self.pc = self.reg[self.ram_read(self.pc + 1)]
+        else:
+            self.pc += 2
+    
+    def JNE(self):
+        if self.flag != 0b00000001:
+            self.pc = self.reg[self.ram_read(self.pc + 1)]
+        else:
+            self.pc += 2
+
+
+    
+    
+    
+        
+
+
