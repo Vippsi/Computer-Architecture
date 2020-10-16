@@ -12,6 +12,7 @@ class CPU:
         self.ram = [0] * 256
         self.processing = False
         self.SP = 7
+        self.flag = 0
         
 
         
@@ -77,6 +78,39 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MULT":
             self.reg[reg_a] *= self.reg[reg_b]
+        
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+            
+        elif op == "AND":
+            self.reg[reg_a] &= self.reg[reg_b]
+
+        elif op == "OR":
+            self.reg[reg_a] |= self.reg[reg_b]
+            
+        elif op == "XOR":
+            self.reg[reg_a] ^= self.reg[reg_b]
+        
+        elif op == "NOT":
+            self.reg[reg_a] =  ~self.reg[reg_b]
+        
+        elif op == "SHL":
+            self.reg[reg_a] <<= self.reg[reg_b]
+        
+        elif op == "SHR":
+            self.reg[reg_a] >>= self.reg[reg_b]
+            
+        elif op == "MOD":
+            self.reg[reg_a] %= self.reg[reg_b]
+
+
+
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -115,6 +149,19 @@ class CPU:
         MUL = 0b10100010
         ADD = 0b10100000
         NOP = 0b00000000
+        CMP = 0b10100111
+        JMP = 0b01010100
+        JEQ = 0b01010101
+        JNE = 0b01010110
+        #Stretch 
+
+        AND = 0b10101000
+        OR = 0b10101010
+        XOR = 0b10101011
+        NOT = 0b01101001
+        SHL = 0b10101100
+        SHR = 0b10101101
+        MOD = 0b10100100
         
         self.reg[self.SP] = 0xf4
 
@@ -182,13 +229,48 @@ class CPU:
             
             elif instruction == NOP:
                 pass
+
+            elif instruction == CMP:
+                self.alu("CMP", operand_a, operand_b)
+            
+            elif instruction == JMP:
+                self.JMP()
+            
+            elif instruction == JEQ:
+                self.JEQ()
+            
+            elif instruction == JNE:
+                self.JNE()
+            
+            # Stretch
+
+            elif instruction == AND:
+                self.alu("AND", operand_a, operand_b)
+            
+            elif instruction == OR:
+                self.alu("OR", operand_a, operand_b)
+
+            elif instruction == XOR:
+                self.alu("XOR", operand_a, operand_b)
+            
+            elif instruction == NOT:
+                self.alu("NOT", operand_a, operand_b)
+            
+            elif instruction == SHL:
+                self.alu("SHL", operand_a, operand_b)
+            
+            elif instruction == SHR:
+                self.alu("SHR", operand_a, operand_b)
+
+            elif instruction == MOD:
+                self.alu("MOD", operand_a, operand_b)
             
             else:
                 print(f"Unknown instruction {instruction} at at {self.pc}")
                 sys.exit(1)
 
 
-            if instruction == CALL or instruction == RET:
+            if instruction & 0b00010000 != 0:
                 # print(instruction >> 4)
                 pass
                 
@@ -232,6 +314,23 @@ class CPU:
         self.reg[reg_num] = value
 
         self.reg[7] += 1
+    
+    def JMP(self):
+        self.pc = self.reg[self.ram_read(self.pc + 1)]
+    
+    def JEQ(self):
+        if self.flag == 0b00000001:
+            self.pc = self.reg[self.ram_read(self.pc + 1)]
+        else:
+            self.pc += 2
+    
+    def JNE(self):
+        if self.flag != 0b00000001:
+            self.pc = self.reg[self.ram_read(self.pc + 1)]
+        else:
+            self.pc += 2
+
+
     
     
     
